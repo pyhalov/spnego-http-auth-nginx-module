@@ -106,6 +106,7 @@ typedef struct {
     ngx_str_t hostname;
     ngx_flag_t fqun;
     ngx_flag_t force_realm;
+    ngx_flag_t disable_basic;
 } ngx_http_auth_spnego_loc_conf_t;
 
 /* Module Directives */
@@ -166,6 +167,14 @@ static ngx_command_t ngx_http_auth_spnego_commands[] = {
         offsetof(ngx_http_auth_spnego_loc_conf_t, force_realm),
         NULL},
 
+    {ngx_string("auth_gss_disable_basic"),
+        NGX_HTTP_MAIN_CONF | NGX_HTTP_SRV_CONF | NGX_HTTP_LOC_CONF |
+            NGX_CONF_FLAG,
+        ngx_conf_set_flag_slot,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        offsetof(ngx_http_auth_spnego_loc_conf_t, disable_basic),
+        NULL},
+
     ngx_null_command
 };
 
@@ -215,6 +224,7 @@ ngx_http_auth_spnego_create_loc_conf(ngx_conf_t * cf)
     conf->protect = NGX_CONF_UNSET;
     conf->fqun = NGX_CONF_UNSET;
     conf->force_realm = NGX_CONF_UNSET;
+    conf->disable_basic = NGX_CONF_UNSET;
 
     return conf;
 }
@@ -236,6 +246,8 @@ ngx_http_auth_spnego_merge_loc_conf(ngx_conf_t * cf, void *parent, void *child)
 
     ngx_conf_merge_off_value(conf->fqun, prev->fqun, 0);
     ngx_conf_merge_off_value(conf->force_realm, prev->force_realm, 0);
+    
+    ngx_conf_merge_off_value(conf->disable_basic, prev->disable_basic, 0);
 
 #if (NGX_DEBUG)
     ngx_conf_log_error(NGX_LOG_INFO, cf, 0, "auth_spnego: protect = %i",
@@ -250,6 +262,8 @@ ngx_http_auth_spnego_merge_loc_conf(ngx_conf_t * cf, void *parent, void *child)
             conf->srvcname.data, conf->srvcname.data);
     ngx_conf_log_error(NGX_LOG_INFO, cf, 0, "auth_spnego: fqun = %i",
             conf->fqun);
+    ngx_conf_log_error(NGX_LOG_INFO, cf, 0, "auth_spnego: disable_basic = %i",
+            conf->disable_basic);
 #endif
 
     return NGX_CONF_OK;
@@ -309,7 +323,7 @@ ngx_http_auth_spnego_negotiate_headers(ngx_http_request_t * r,
         r->headers_out.www_authenticate->value.data = value.data;
     }
     /* Basic auth */
-    if (NULL == token) {
+    if (NULL == token && !alcf->disable_basic) {
         ngx_str_t value2 = ngx_null_string;
         value2.len = sizeof("Basic realm=\"\"") - 1 + alcf->realm.len;
         value2.data = ngx_pcalloc(r->pool, value2.len);
