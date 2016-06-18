@@ -474,7 +474,7 @@ ngx_http_auth_spnego_basic(ngx_http_request_t * r,
              }
              ngx_sprintf(new_user,"%s",user.data);
              new_user[len-1]='\0';
-             r->headers_in.user.len = strlen(new_user);
+             r->headers_in.user.len = ngx_strlen(new_user);
              ngx_pfree(r->pool,r->headers_in.user.data);
              r->headers_in.user.data=new_user;
              spnego_debug1("set user to %s", new_user);
@@ -495,7 +495,7 @@ ngx_http_auth_spnego_basic(ngx_http_request_t * r,
                 }
                 ngx_sprintf(new_user,"%s@%s%Z",user.data,alcf->realm.data);
                 new_user[len-1]='\0';
-                r->headers_in.user.len = strlen(new_user);
+                r->headers_in.user.len = ngx_strlen(new_user);
                 ngx_pfree(r->pool,r->headers_in.user.data);
                 r->headers_in.user.data=new_user;
                 spnego_debug2("set user to %s, realm %s included", new_user, alcf->realm.data);
